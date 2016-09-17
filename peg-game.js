@@ -68,12 +68,22 @@
     }
   };
 
-  function Board() {
+  function Board(viewContainer) {
     this.board_ = new Array(15);
+    this.view = new BoardView(viewContainer);
   }
 
   Board.prototype.resetBoard = function() {
     this.board_ = new Array(15);
+  };
+
+  /**
+   * @enum
+   * Describes whether a hole is empty or occupied
+   */
+  Board.prototype.States = {
+    EMPTY: 0,
+    OCCUPIED: 1
   };
 
   /**
@@ -153,5 +163,26 @@
       return null;
   };
 
-  // TODO: Add Board.prototype.{isEmpty, isOccupied, addPeg, removePeg} functions.
+  Board.prototype.isEmpty = function(i) {
+    return this.board_[i] === this.States.EMPTY;
+  };
+
+  Board.prototype.isOccupied = function(i) {
+    return this.board_[i] === this.States.OCCUPIED;
+  };
+
+  Board.prototype.addPeg = function(i) {
+    this.board_[i] = this.States.OCCUPIED;
+    this.view.updatePeg(i);
+  };
+
+  Board.prototype.removePeg = function(i) {
+    this.board_[i] = this.States.EMPTY;
+    this.view.updatePeg(i);
+  };
+
+  function BoardView(container) {
+    this.container_ = container;
+
+  }
 })();
