@@ -22,8 +22,13 @@
     this.y = y | 0;
   }
 
-  function Jump() {
-
+  /**
+   * @constructor
+   * Represents a peg jump.
+   * @param {Board} board The board that the jump was made on.
+   */
+  function Jump(board) {
+    this.board = board;
   }
 
   /**
@@ -42,13 +47,13 @@
    * @return {boolean} True if the jump is legal, false if the jump is illegal.
    */
   Jump.prototype.end_ = function(i) {
-    var removedIndex = board.getRemovedIndex(i);
+    var removedIndex = this.board.getRemovedIndex(i);
 
-    if (removedIndex !== null && board.isEmpty(i) && board.isOccupied(removedIndex)) {
+    if (removedIndex !== null && this.board.isEmpty(i) && this.board.isOccupied(removedIndex)) {
       this.end = i;
-      board.removePeg(this.start);
-      board.removePeg(removedIndex);
-      board.addPeg(i);
+      this.board.removePeg(this.start);
+      this.board.removePeg(removedIndex);
+      this.board.addPeg(i);
       this.state++;
 
       return true;
@@ -68,9 +73,10 @@
     }
   };
 
-  function Board(viewContainer) {
+  function Board(viewContainer, namespace) {
     this.board_ = new Array(15);
-    this.view = new BoardView(viewContainer);
+    this.jumps = [];
+    this.view = new BoardView(viewContainer, namespace, this);
   }
 
   Board.prototype.resetBoard = function() {
@@ -181,8 +187,105 @@
     this.view.updatePeg(i);
   };
 
-  function BoardView(container) {
-    this.container_ = container;
+  /**
+   * @constructor
+   * A class for handling the board view HTML. The CSS is in a separate file.
+   * @param {HTMLElement} container The container element to add all the child elements to.
+   * @param {string} namespace The namespace for HTML attributes.
+   * @param {Board] board The board that this view displays.
+   */
+  function BoardView(container, namespace, board) {
+    this.namespace = '' + namespace;
+    this.container = container;
+    this.board = board;
 
+    this.setUpElements_();
+    this.adjustContainerSize_();
+    this.updateAllPegs();
   }
+
+  /**
+   * @private
+   * @param {string} str The string to be namespaced.
+   * @return {string} The namespaced string.
+   */
+  BoardView.prototype.ns_ = function(str) {
+    return this.namepsace + str;
+  };
+
+  /**
+   * @private
+   * Sets up HTML elements used for holes and pegs.
+   */
+  BoardView.prototype.setUpElements_ = function() {
+    this.holes_ = new Array(15);
+    this.pegs_ = new Array(15);
+
+    var i = 15;
+    while (i--) {
+      var hole = document.createElement('div');
+      var peg = document.createElement('div');
+
+      hole.id = this.ns_('peg-game-hole-' + i);
+      hole.zIndex = -1;
+
+      peg.id = this.ns_('peg-game-peg-' + i);
+      peg.addEventListener('ontouchend', this.getSelectHandler_(i));
+      peg.addEventListener('click', this.getSelectHandler_(i));
+
+      this.holes_[i] = hole;
+      this.container.appendChild(hole);
+      this.pegs_[i] = peg;
+      this.container.appendChild(peg);
+    }
+  };
+
+  /**
+   * @private
+   * Adjusts the container size so it fits the screen.
+   */
+  BoardView.prototype.adjustContainerSize_ = function() {
+
+  };
+
+  /**
+   * @private
+   * Return a handler that handles when a peg is selected, either by click or
+   *   tap.
+   * @param {number} i The index of the peg.
+   * @return {function} The click or tap handler.
+   */
+  BoardView.prototype.getSelectHandler_ = function(i) {
+    return (function() {
+      var jumps = this.board.jumps;
+      var last = jumps[jumps.length - 1];
+
+      switch (last.state) {
+
+      }
+    }).bind(this);
+  };
+
+  /**
+   * Updates the visibility of a peg, based on whether the hole is occupied;
+   * @param {number} i The index of the peg to update.
+   */
+  BoardView.prototype.updatePeg = function(i) {
+    var holeClasses = this.holes_[i].classList;
+
+    if (this.board.isOccupied(i)) {
+      holeClasses.add(this.ns_('peg-game-visible-peg'));
+      holeClasses.remove(this.ns_('peg-game-hidden-peg'));
+    } else {
+      holeClasses.add(this.ns_('peg-game-hidden-peg'));
+      holeClasses.remove(this.ns_('peg-game-visible-peg'));
+    }
+  };
+
+  BoardView.prototype.updateAllPegs = function() {
+    var i = 15;
+    while (i--) {
+      this.updatePeg(i);
+    }
+  };
 })();
