@@ -16,7 +16,12 @@
     return (ady === 2 && adx === 2) || (ady === 0 && adx === 4);
   }
   */
-
+  /**
+   * A vector position.
+   * @constructor
+   * @param {number} x
+   * @param {number} y
+   */
   function Vector(x, y) {
     this.x = x | 0;
     this.y = y | 0;
@@ -30,6 +35,8 @@
   function Jump(board) {
     this.board = board;
   }
+
+  Jump.prototype.state = 0;
 
   /**
    * Sets the start index of the jump.
@@ -62,7 +69,12 @@
     return false;
   };
 
-  Jump.prototype.processUserInput = function(i) {
+  /**
+   * Handles what to do when a peg is selected, based on the peg select and
+   *   what prior knowledge is known about the jump.
+   * @param {number} i The index of the peg being selected.
+   */
+  Jump.prototype.select = function(i) {
     switch (this.state) {
       case 0:
         this.start_(i);
@@ -70,13 +82,43 @@
       case 1:
         this.end_(i);
         break;
+      case 2:
+        this.board.jumps.push(new Jump(this.board));
+        this.board.jumps[this.board.jumps.length - 1].select(i);
     }
   };
 
-  function Board(viewContainer, namespace) {
+  /**
+   * Reverses a previous selection or jump.
+   */
+  Jump.prototype.unselect = function() {
+    switch (this.state) {
+      case 0:
+        this.board.jumps.pop();
+        break;
+      case 1:
+        this.start = null;
+        this.state--;
+        break;
+
+      case 2:
+        this.end = null;
+        this.state--;
+        break;
+    }
+  };
+
+  /**
+   * @constructor
+   * Represents a playing board.
+   * @param {HTMLElement} viewContainer The containing div that other elements
+   *   will be inserted into.
+   * @param {string} idNamespace The namepsace for ids and class names.
+   */
+  function Board(viewContainer, idNamespace) {
     this.board_ = new Array(15);
     this.jumps = [];
-    this.view = new BoardView(viewContainer, namespace, this);
+    this.view = new BoardView(viewContainer, idNamespace, this);
   }
 
   Board.prototype.resetBoard = function() {
@@ -187,12 +229,34 @@
     this.view.updatePeg(i);
   };
 
+  Board.prototype.selectPeg = function(i) {
+    var last = this.jumps[this.jumps.length - 1];
+
+    if (last) {
+      last.select(i);
+    } else {
+      this.removePeg(i);
+      this.jumps.push(new Jump(this));
+    }
+  };
+
+  Board.prototype.undo = function() {
+    var last = this.jumps[this.jumps.length - 1];
+
+    if (last) {
+      last.unselect();
+      if (this.jumps.length === 0) {
+        this.resetBoard();
+      }
+    }
+  };
+
   /**
    * @constructor
    * A class for handling the board view HTML. The CSS is in a separate file.
    * @param {HTMLElement} container The container element to add all the child elements to.
    * @param {string} namespace The namespace for HTML attributes.
-   * @param {Board] board The board that this view displays.
+   * @param {Board} board The board that this view displays.
    */
   function BoardView(container, namespace, board) {
     this.namespace = '' + namespace;
@@ -242,6 +306,7 @@
 
   /**
    * @private
+   * @todo Complete this function stub.
    * Adjusts the container size so it fits the screen.
    */
   BoardView.prototype.adjustContainerSize_ = function() {
@@ -257,12 +322,7 @@
    */
   BoardView.prototype.getSelectHandler_ = function(i) {
     return (function() {
-      var jumps = this.board.jumps;
-      var last = jumps[jumps.length - 1];
-
-      switch (last.state) {
-
-      }
+      this.board.selectPeg(i);
     }).bind(this);
   };
 
@@ -288,4 +348,6 @@
       this.updatePeg(i);
     }
   };
+
+  board = new Board('peg-game-container', '');
 })();
